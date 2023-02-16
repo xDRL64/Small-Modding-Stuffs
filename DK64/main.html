@@ -1,0 +1,170 @@
+<script src="./external/float16.min.js"></script>
+<script src="./external/gl-matrix-min.js"></script>
+
+<script src="./assets/dkHouse.geometry.bin.js"></script>
+<script src="./assets/jungleJapes.geometry.bin.js"></script>
+
+<script src="./getGeometryData.js"></script>
+<script src="./get_vertices.js"></script>
+
+<script src="./webgl/shader.js"></script>
+<script src="./webgl/webgl.js"></script>
+
+<style>*{margin: 4px;}</style>
+
+<body>
+	Current displayed map chunk : 
+	<select id="chunkList"></select>
+	<div></div>
+	Rotation speed : 
+	<input id="rotSpeed" type="number" value="0.05" step="0.05">
+	<div style="width:100%;  white-space:pre; overflow-x:hidden;"
+		><canvas id="glcanvas" width="640" height="480"
+		style="display:inline-block; vertical-align:top;"></canvas
+		><div id="geometryInfo"
+		style="display:inline-block; height:480px; white-space:pre; overflow-y:scroll;"></div
+	></div>
+</body>
+
+<script>
+	var keys = {w:false,s:false,a:false,d:false,r:false,f:false};
+	document.body.onkeydown = (e)=>{
+		keys.w = e.key === 'w';
+		keys.s = e.key === 's';
+		keys.a = e.key === 'a';
+		keys.d = e.key === 'd';
+		keys.r = e.key === 'r';
+		keys.f = e.key === 'f';
+	};
+	document.body.onkeyup = (e)=>{
+		keys.w = false;
+		keys.s = false;
+		keys.a = false;
+		keys.d = false;
+		keys.r = false;
+		keys.f = false;
+	};
+</script>
+
+
+<script>
+
+	let {Float16Array} = float16;
+
+	let geometryFile = jungleJapesGeometryBin;
+	//    geometryFile = geometryFile_DK_House;
+
+	let geometry = getGeometryData(geometryFile);
+
+	geometryInfo.textContent = geometry.log;
+
+	let directGeoStruct = null;
+	let vertices = null;
+	let target = null;
+	let minDistance = null;
+	if(geometry.ChunkCount){
+
+		for(let i=0; i<geometry.ChunkCount; i++){
+			let op = document.createElement('option');
+			op.textContent = i;
+			op.value = i;
+			chunkList.appendChild(op);
+		}
+
+		
+	}
+
+	// try to draw chunk
+	let webGL = get_webglHandle(glcanvas)
+
+	const shaderStruct = build_shader(webGL);
+
+	chunkList.onchange = ()=>{
+
+		// test
+		let iChunk = chunkList.value;
+		let chnkVertOfst = geometry.ChunkData[iChunk].vert.o;
+		let chnkVertSize = geometry.ChunkData[iChunk].vert.s;
+		vertices = get_vertices(geometryFile, geometry.Vert_Start, chnkVertOfst, chnkVertSize);
+
+		console.log(vertices);
+		
+		directGeoStruct = getDirectGeo_fromVerticesObj(vertices);
+
+		if(directGeoStruct){
+
+			console.log(directGeoStruct);
+
+			send_attrPosition(webGL, directGeoStruct.position);
+			send_attrColor(webGL, directGeoStruct.color);
+	
+			update_glAttributes(webGL, shaderStruct);
+	
+			target = compute_medianPoint(vertices);
+	
+			minDistance = get_farestPointInfo(vertices, target).dist;
+
+			move = 1000.1;
+			cam = [target[0],target[1],target[2]+minDistance]
+
+			autoCamMoveSys = {
+				init : false,
+				ray : 0,
+			};
+		}
+
+	};
+
+	chunkList.onchange();
+
+
+	let loop = ()=>{
+
+		// keyboard cam control
+		//
+
+		// z
+		if(keys.w) cam[2] -= move;
+		if(keys.s) cam[2] += move;
+
+		// x
+		if(keys.a) cam[0] -= move;
+		if(keys.d) cam[0] += move;
+
+		// y
+		if(keys.r) cam[1] += move;
+		if(keys.f) cam[1] -= move;
+
+		// automatic cam movement
+		//
+
+		let speed = parseFloat(rotSpeed.value);
+
+		if(true){
+			if(!autoCamMoveSys.init){
+				autoCamMoveSys.ray = get_2pointsLength(cam, target);
+				autoCamMoveSys.init = true;
+			}
+			let ray = autoCamMoveSys.ray;
+			let t = (Date.now() * Math.PI / 180) * speed ;
+			let {sin:s,cos:c} = Math;
+			let y = 0.3;
+			cam = [	(c(t)*ray+s(t)*ray)+target[0],
+
+					//cam[1],
+					(c(t*y)*ray*y+s(t*y)*ray*y)+target[1],
+
+					(-s(t)*ray+c(t)*ray)+target[2],
+			];
+		}
+
+		if(speed)
+			draw_scene(webGL, shaderStruct, cam, target);
+
+		requestAnimationFrame(loop);
+	}
+	loop();
+
+	
+
+</script>
