@@ -1,5 +1,9 @@
 let get_webglHandle = (htmlCanvas)=>{
 	const gl = htmlCanvas.getContext("webgl");
+	gl.enable(gl.CULL_FACE);
+	gl.enable(gl.DEPTH_TEST);
+	gl.depthFunc(gl.LEQUAL);
+
 	gl.clearColor(0.0, 0.0, 0.0, 1.0);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	return gl;
@@ -59,7 +63,8 @@ let draw_scene = (gl, shaderStruct, cam, target)=>{
 	gl.uniformMatrix4fv(shaderStruct.uniforms.mMV, false, modelViewMatrix );
 
 	{
-		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
 		const offset = 0;
 		gl.drawArrays(gl.TRIANGLES, offset, _vertexCount);
 	}

@@ -53,7 +53,7 @@ let getDirectGeo_fromVerticesObj = (vObj)=>{
 		position : vObj.map(e=>[e.x,e.y,e.z]).flat(),
 		texcoord : vObj.map(e=>[e.u,e.v]).flat(),
 		color    : vObj.map(e=>[e.r,e.g,e.b,e.a]).flat(),
-	}
+	};
 };
 
 let compute_medianPoint = (verticesObj)=>{
@@ -79,3 +79,68 @@ let get_farestPointInfo = (verticesObj, center)=>{
 	},{dist:-1,index:null});
 
 }
+
+let getFaces_fromDisplayList = (binFile, DLoffset, DLarray, vertTblOfst)=>{
+	let foundFaces = [];
+
+	// debug
+	DLarray[1]={o:0xFFFFFFFF,s:0};
+
+	// TODO : find the correct DL of the 4 ones per chunk
+
+	DLarray.forEach((e,i)=>{
+		if(e.s && (e.o!==0xFFFFFFFF)){
+			let address = DLoffset + e.o;
+			let end = address + e.s;
+			let bytes = binFile.slice(address, end);
+			let DLlist = [];
+			while(bytes.length > 7) DLlist.push(bytes.splice(0,8));
+
+			let vBuffer = [0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0];
+
+			DLlist.forEach(e=>{
+				// [CMD 01 : G_VTX]
+				if(e[0] === 0x01){
+					// https://hack64.net/wiki/doku.php?id=f3dex2#g_vtx
+					// 01 0[N N]0 [II] [SS SS SS SS]
+					let N = (((e[1]<<8)+e[2])&0x0FF0)>>4; // Number of vertices to write
+					let I = e[3]-(N*2); // Where to start writing vertices inside the vertex buffer (start = II - N*2)
+					let S = (e[5]<<16)+(e[6]<<8)+e[7]; // Segmented address to load vertices from
+					let iVert = S >> 4; // (div by 16) get vertices start index
+					for(let i=0; i<N; i++){
+						vBuffer[I+i] = iVert + i;
+					}
+				}
+				if(e[0] === 0x02){
+					console.log('found : 0x02')
+				}
+				// [CMD 05] and [CMD 06 (first 4 bytes)]
+				if(e[0] === 0x05 || e[0] === 0x06 || e[0] === 0x07){
+					// https://hack64.net/wiki/doku.php?id=f3dex2#g_tri1
+					// https://hack64.net/wiki/doku.php?id=f3dex2#g_tri2
+					// 05 [AA] [BB] [CC] 00 00 00 00
+					// 06 [AA] [BB] [CC] 00 -- -- --
+					foundFaces.push([vBuffer[e[1]>>1],vBuffer[e[2]>>1],vBuffer[e[3]>>1]]);
+				}
+				// [CMD 06 (last 4 bytes)]
+				if(e[0] === 0x06 || e[0] === 0x07){
+					// https://hack64.net/wiki/doku.php?id=f3dex2#g_tri2
+					// 06 -- -- -- 00 [DD] [EE] [FF]
+					foundFaces.push([vBuffer[e[5]>>1],vBuffer[e[6]>>1],vBuffer[e[7]>>1]]);
+				}
+
+			});
+		}
+	});
+
+	return foundFaces;
+};
+
+
+let rebuildVertices_fromIndexedRef = (vertices, facesInfo, vertIndexOfst=0)=>{
+	let output = [];
+	facesInfo.forEach(e=>{
+		output.push( ...(e.map(v=>vertices[v+vertIndexOfst])) );
+	});
+	return output;
+};

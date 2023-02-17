@@ -1,4 +1,4 @@
-<script src="./external/float16.min.js"></script>
+
 <script src="./external/gl-matrix-min.js"></script>
 
 <script src="./assets/dkHouse.geometry.bin.js"></script>
@@ -49,17 +49,19 @@
 
 <script>
 
-	let {Float16Array} = float16;
+	//let {Float16Array} = float16;
 
 	let geometryFile = jungleJapesGeometryBin;
 	//    geometryFile = geometryFile_DK_House;
 
 	let geometry = getGeometryData(geometryFile);
+	console.log(geometry);
 
 	geometryInfo.textContent = geometry.log;
 
-	let directGeoStruct = null;
 	let vertices = null;
+	let directGeoStruct = null;
+	let facesInfo = null;
 	let target = null;
 	let minDistance = null;
 	if(geometry.ChunkCount){
@@ -70,8 +72,6 @@
 			op.value = i;
 			chunkList.appendChild(op);
 		}
-
-		
 	}
 
 	// try to draw chunk
@@ -86,10 +86,21 @@
 		let chnkVertOfst = geometry.ChunkData[iChunk].vert.o;
 		let chnkVertSize = geometry.ChunkData[iChunk].vert.s;
 		vertices = get_vertices(geometryFile, geometry.Vert_Start, chnkVertOfst, chnkVertSize);
-
 		console.log(vertices);
 		
-		directGeoStruct = getDirectGeo_fromVerticesObj(vertices);
+	//	directGeoStruct = getDirectGeo_fromVerticesObj(vertices);
+
+		let vertTblOfst = chnkVertOfst // if not, try : geometry.Vert_Start
+		facesInfo = getFaces_fromDisplayList(
+			geometryFile, geometry.DL_Start, geometry.ChunkData[iChunk].DL, vertTblOfst
+		);
+		console.log('facesInfo',facesInfo);
+
+		let indexedVertices = rebuildVertices_fromIndexedRef(vertices, facesInfo, 0);
+		console.log('indexedVertices',indexedVertices);
+		
+		directGeoStruct = getDirectGeo_fromVerticesObj(indexedVertices);
+		console.log('directGeoStruct',directGeoStruct);
 
 		if(directGeoStruct){
 
