@@ -80,11 +80,11 @@ let get_farestPointInfo = (verticesObj, center)=>{
 
 }
 
-let getFaces_fromDisplayList = (binFile, DLoffset, DLarray, vertTblOfst)=>{
+let getFaces_fromDisplayList = (binFile, DLoffset, DLarray, disabledDL)=>{
 	let foundFaces = [];
 
-	// debug
-	DLarray[1]={o:0xFFFFFFFF,s:0};
+	// debug (use checkboxes to display DL or not)
+	DLarray = DLarray.map((e,i)=>(disabledDL[i]?e:{o:0xFFFFFFFF,s:0}));
 
 	// TODO : find the correct DL of the 4 ones per chunk
 

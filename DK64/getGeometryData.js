@@ -14,6 +14,9 @@ let JnBBgInt = (array)=>{
 
 let getGeometryData = (bytes)=>{
 
+	// source :
+	// https://github.com/GloriousLiar/DK64FileParsers/blob/main/src/Main.java
+
     let consoleTxt = '';
 
     consoleTxt += "Begin.\n";

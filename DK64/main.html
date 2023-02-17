@@ -13,11 +13,22 @@
 <style>*{margin: 4px;}</style>
 
 <body>
-	Current displayed map chunk : 
-	<select id="chunkList"></select>
-	<div></div>
-	Rotation speed : 
-	<input id="rotSpeed" type="number" value="0.05" step="0.05">
+	<div style="display:inline-block;">
+		Current displayed map chunk : 
+		<select id="chunkList"></select>
+		<div></div>
+		Rotation speed : 
+		<input id="rotSpeed" type="number" value="0.05" step="0.05">
+		<div></div>
+		Zoom factor : 
+		<input id="zoomFactor" type="range" value="1.0" min="0.01" max="5" step="0.02">
+	</div>
+	<div style="display:inline-block;">
+		DL 1 <input id="cbxDL1" type="checkbox" checked><br/>
+		DL 2 <input id="cbxDL2" type="checkbox" checked><br/>
+		DL 3 <input id="cbxDL3" type="checkbox" checked><br/>
+		DL 4 <input id="cbxDL4" type="checkbox" checked><br/>
+	</div>
 	<div style="width:100%;  white-space:pre; overflow-x:hidden;"
 		><canvas id="glcanvas" width="640" height="480"
 		style="display:inline-block; vertical-align:top;"></canvas
@@ -46,6 +57,14 @@
 	};
 </script>
 
+
+<script>
+	// DL checkboxes
+	(()=>{
+		let change = function(){ chunkList.onchange(); };
+		([cbxDL1,cbxDL2,cbxDL3,cbxDL4]).forEach(e=>e.onchange=change);
+	})();
+</script>
 
 <script>
 
@@ -90,9 +109,9 @@
 		
 	//	directGeoStruct = getDirectGeo_fromVerticesObj(vertices);
 
-		let vertTblOfst = chnkVertOfst // if not, try : geometry.Vert_Start
+		let disabledList = [cbxDL1.checked,cbxDL2.checked,cbxDL3.checked,cbxDL4.checked]
 		facesInfo = getFaces_fromDisplayList(
-			geometryFile, geometry.DL_Start, geometry.ChunkData[iChunk].DL, vertTblOfst
+			geometryFile, geometry.DL_Start, geometry.ChunkData[iChunk].DL, disabledList
 		);
 		console.log('facesInfo',facesInfo);
 
@@ -150,13 +169,13 @@
 		//
 
 		let speed = parseFloat(rotSpeed.value);
-
+		let zoom = parseFloat(zoomFactor.value);
 		if(true){
 			if(!autoCamMoveSys.init){
 				autoCamMoveSys.ray = get_2pointsLength(cam, target);
 				autoCamMoveSys.init = true;
 			}
-			let ray = autoCamMoveSys.ray;
+			let ray = autoCamMoveSys.ray / zoom;
 			let t = (Date.now() * Math.PI / 180) * speed ;
 			let {sin:s,cos:c} = Math;
 			let y = 0.3;
@@ -169,7 +188,7 @@
 			];
 		}
 
-		if(speed)
+		//if(speed)
 			draw_scene(webGL, shaderStruct, cam, target);
 
 		requestAnimationFrame(loop);
