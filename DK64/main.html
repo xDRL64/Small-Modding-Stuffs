@@ -3,6 +3,7 @@
 
 <script src="./assets/dkHouse.geometry.bin.js"></script>
 <script src="./assets/jungleJapes.geometry.bin.js"></script>
+<script src="./assets/angryAztec.geometry.bin.js"></script>
 
 <script src="./getGeometryData.js"></script>
 <script src="./get_vertices.js"></script>
@@ -71,6 +72,7 @@
 	//let {Float16Array} = float16;
 
 	let geometryFile = jungleJapesGeometryBin;
+	//geometryFile = angryAztecGeometryBin;
 	//    geometryFile = geometryFile_DK_House;
 
 	let geometry = getGeometryData(geometryFile);
@@ -111,7 +113,7 @@
 
 		let disabledList = [cbxDL1.checked,cbxDL2.checked,cbxDL3.checked,cbxDL4.checked]
 		facesInfo = getFaces_fromDisplayList(
-			geometryFile, geometry.DL_Start, geometry.ChunkData[iChunk].DL, disabledList
+			geometryFile, geometry.DL_Start, geometry.ChunkData[iChunk].DL, geometry.Sections, disabledList
 		);
 		console.log('facesInfo',facesInfo);
 

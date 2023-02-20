@@ -1,4 +1,4 @@
-let makeStr32hexAddress = (xx______, __xx____, ____xx__, ______xx)=>{
+let makeStr32hexAddress = (xx______=0, __xx____=0, ____xx__=0, ______xx=0)=>{
     return  (xx______>0xF?'':'0') + xx______.toString(16).toUpperCase() +
             (__xx____>0xF?'':'0') + __xx____.toString(16).toUpperCase() +
             (____xx__>0xF?'':'0') + ____xx__.toString(16).toUpperCase() +
@@ -121,12 +121,65 @@ let getGeometryData = (bytes)=>{
                 "****\n";
     }
     
+	// section getting
+	//
+
+	let sectionInfoBytes = bytes.slice(structOutput.Section_Start, structOutput.Section_End);
+	let sectionInfoCount = JnBBgInt(sectionInfoBytes.splice(0, 4));
+	//console.log(sectionInfoBytes.map(e=>(e<=0xF?'0':'')+e.toString(16).toUpperCase()));
+	let sectionInfoData = [];
+	while(sectionInfoBytes.length > 27) sectionInfoData.push(sectionInfoBytes.splice(0,28));
+	let sectionInfoStruct = [];
+
+	// DK64-Viewer ref inspiration
+	sectionInfoData.forEach(e=>sectionInfoStruct.push({
+		sectionID : JnBBgInt([0,0, e[0 ], e[1]]),
+		meshID    : JnBBgInt([0,0, e[2 ], e[3]]),
+		vOfst1    : JnBBgInt([0,0, e[8 ], e[9]]),
+		vOfst_    : JnBBgInt([0,0, e[10], e[11]]),
+		vOfst2    : JnBBgInt([0,0, e[12], e[13]]),
+		vOfst3    : JnBBgInt([0,0, e[14], e[15]]),
+		vSize1    : JnBBgInt([0,0, e[16], e[17]]),
+		vSize_    : JnBBgInt([0,0, e[18], e[19]]),
+		vSize2    : JnBBgInt([0,0, e[20], e[21]]),
+		vSize3    : JnBBgInt([0,0, e[22], e[23]]),
+	}));
+
+	// rebuild (with new name & )
+	//
+	// ordered by meshID
+	sectionInfoStruct = sectionInfoStruct.sort((A,B)=>{
+		return (A.meshID < B.meshID) ? -1 : +1;
+	// rename props
+	}).map(e=>({
+		section  : e.sectionID,
+		mesh     : e.meshID,
+		DL1vOfst : e.vOfst1, // vertex index offset (not byte address offset)
+		DL2vOfst : e.vOfst_, // vertex index offset (not byte address offset)
+		DL3vOfst : e.vOfst2, // vertex index offset (not byte address offset)
+		DL4vOfst : e.vOfst3, // vertex index offset (not byte address offset)
+		DL1vSize : e.vSize1,
+		DL2vSize : e.vSize_,
+		DL3vSize : e.vSize2,
+		DL4vSize : e.vSize3,
+	}));
+	// add default empty (meshID 0)
+	sectionInfoStruct.unshift({
+		section:0,mesh:0,
+		DL1vOfst:0,DL2vOfst:0,DL3vOfst:0,DL4vOfst:0,
+		DL1vSize:0,DL2vSize:0,DL3vSize:0,DL4vSize:0
+	});
+
+	structOutput.Sections = sectionInfoStruct;
+
+	console.table(sectionInfoStruct)
+
     sOut += "*********************\n";
     
     consoleTxt += sOut;
     consoleTxt += "End."
 
-    console.log(consoleTxt);
+//    console.log(consoleTxt);
 
 	// fix patch (for file with no chunk)
 	let fileVertCount = structOutput.Vert_End - structOutput.Vert_Start;

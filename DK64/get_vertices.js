@@ -80,13 +80,18 @@ let get_farestPointInfo = (verticesObj, center)=>{
 
 }
 
-let getFaces_fromDisplayList = (binFile, DLoffset, DLarray, disabledDL)=>{
+let getFaces_fromDisplayList = (binFile, DLoffset, DLarray, SectionsByMesh, disabledDL)=>{
 	let foundFaces = [];
 
 	// debug (use checkboxes to display DL or not)
 	DLarray = DLarray.map((e,i)=>(disabledDL[i]?e:{o:0xFFFFFFFF,s:0}));
 
-	// TODO : find the correct DL of the 4 ones per chunk
+	// debug
+	let vertIndexCollection = new Set();
+
+
+	let vBuffer = [0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0];
+	let useSection = 0;
 
 	DLarray.forEach((e,i)=>{
 		if(e.s && (e.o!==0xFFFFFFFF)){
@@ -96,23 +101,46 @@ let getFaces_fromDisplayList = (binFile, DLoffset, DLarray, disabledDL)=>{
 			let DLlist = [];
 			while(bytes.length > 7) DLlist.push(bytes.splice(0,8));
 
-			let vBuffer = [0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0];
+			DLlist.every(e=>{
 
-			DLlist.forEach(e=>{
+				// [CMD 00 : G_SPNOOP]
+				if(e[0] === 0x00){
+					console.log(
+						`found : 0x00 in DL ${i+1} : ` + e.map(e=>(e<=0xF?'0':'')+e.toString(16).toUpperCase())
+					);
+					useSection = e[7];
+				}
+
 				// [CMD 01 : G_VTX]
 				if(e[0] === 0x01){
 					// https://hack64.net/wiki/doku.php?id=f3dex2#g_vtx
 					// 01 0[N N]0 [II] [SS SS SS SS]
 					let N = (((e[1]<<8)+e[2])&0x0FF0)>>4; // Number of vertices to write
 					let I = e[3]-(N*2); // Where to start writing vertices inside the vertex buffer (start = II - N*2)
+
+					//I = I >> 1; // like DK64-Viewer
+					//I = (e[3]>>1)-(N); // exactly like DK64-Viewer
+
 					let S = (e[5]<<16)+(e[6]<<8)+e[7]; // Segmented address to load vertices from
+
+					//S+=(e[4]<<24);
+					//S+=(0x01<<24);
+
 					let iVert = S >> 4; // (div by 16) get vertices start index
-					for(let i=0; i<N; i++){
-						vBuffer[I+i] = iVert + i;
+
+					let sOffset = SectionsByMesh[useSection][`DL${i+1}vOfst`];
+
+					for(let i=0; i<N; i++){	
+						vBuffer[I+i] = iVert + i + sOffset;
 					}
+
+					// debug
+					console.log(
+						`found : 0x01 in DL ${i+1} : ` + e.map(e=>(e<=0xF?'0':'')+e.toString(16).toUpperCase())
+					);
 				}
 				if(e[0] === 0x02){
-					console.log('found : 0x02')
+					console.log(`found : 0x02 in DL ${i+1}`);
 				}
 				// [CMD 05] and [CMD 06 (first 4 bytes)]
 				if(e[0] === 0x05 || e[0] === 0x06 || e[0] === 0x07){
@@ -129,6 +157,20 @@ let getFaces_fromDisplayList = (binFile, DLoffset, DLarray, disabledDL)=>{
 					foundFaces.push([vBuffer[e[5]>>1],vBuffer[e[6]>>1],vBuffer[e[7]>>1]]);
 				}
 
+				if(e[0] === 0xDA){
+					console.log(`found : 0xDA in DL ${i+1}`);
+				}
+
+				if(e[0] === 0xDE){
+					console.log(`found : 0xDE in DL ${i+1}`);
+				}
+				if(e[0] === 0xDF){
+					console.log(`found : 0xDF in DL ${i+1}`);
+					useSection = 0;
+					//return false;
+				}
+
+				return true;
 			});
 		}
 	});

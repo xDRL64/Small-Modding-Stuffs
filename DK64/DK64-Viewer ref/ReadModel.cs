@@ -49,7 +49,7 @@
 			// getting sections
 			//
 
-			int num4 = num2 + 4;
+			int num4 = num2 + 4; // +4 to jump section count // 4 first bytes [xx xx xx xx] of all section block
 			for (int index7 = 0; num4 + index7 < num3; index7 += 28)
 				modelFile.sections.Add(new ModelSection()
 				{
@@ -77,13 +77,15 @@
 					});
 				}
 			}
+
 			modelFile.groups = modelFile.groups.OrderBy<ModelSectionGroup, int>((Func<ModelSectionGroup, int>) (o => o.sectionID)).ToList<ModelSectionGroup>();
+			
 			foreach (ModelSectionGroup group in modelFile.groups)
 			{
 				foreach (ModelSection section in modelFile.sections)
 				{
 					if (section.sectionID == group.sectionID)
-					group.endOffset += section.numVerts1 + section.numVerts2 + section.numVerts3 + section.numVertsUnknown;
+						group.endOffset += section.numVerts1 + section.numVerts2 + section.numVerts3 + section.numVertsUnknown;
 				}
 			}
 		}

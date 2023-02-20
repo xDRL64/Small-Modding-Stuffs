@@ -28,7 +28,10 @@ public static void GetBuffersFromDKModelFile(
 	try
 	{
 		Hashtable hashtable = new Hashtable();   // works only with itself so useless
-		List<uint> uintList1 = new List<uint>(); // used to catch last byte of every DL cmd 0x00 (only if 4 last bytes < 0xFF)
+
+		// meshID occurence list
+		List<uint> uintList1 = new List<uint>(); // used to catch last byte of every DL cmd 0x00 (only if 4 last bytes <= 0xFF)
+
 		List<uint> uintList2 = new List<uint>(); // unused in this fuction so useless
 
 		// geo file props (structured by ReadModel) // props relative to the entier geo file
@@ -101,7 +104,7 @@ public static void GetBuffersFromDKModelFile(
 					foreach (int num6 in uintList1)
 					{
 						if ((long) num6 == (long) num4)
-						++useNumber;
+							++useNumber;
 					}
 					num5 = Core.CalcSectionVtxOffset(file.groups, file.sections, (int) num4, useNumber);
 					hashtable[(object) num4] = (object) 0;
